@@ -36,7 +36,7 @@ export function AddUsernameDialog() {
       <DialogTrigger asChild>
         <button
           type="button"
-          className="inline-flex h-10 items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-black/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black"
+          className="group/button flex h-[42px] items-center justify-center space-x-3 rounded-lg border border-pink-500 bg-pink-500 px-3 py-2 text-base leading-6 text-white transition-transform duration-50 hover:border-pink-600 hover:bg-pink-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-600 disabled:cursor-not-allowed disabled:bg-pink-500 disabled:border-pink-500 disabled:opacity-50 disabled:active:scale-100 active:scale-95"
         >
           Add username
         </button>
@@ -65,7 +65,7 @@ export function AddUsernameDialog() {
             <DialogClose asChild>
               <button
                 type="submit"
-                className="inline-flex h-10 items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-black/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black disabled:cursor-not-allowed disabled:opacity-70"
+                className="group/button flex h-[42px] items-center justify-center space-x-3 rounded-lg border border-pink-500 bg-pink-500 px-3 py-2 text-base leading-6 text-white transition-transform duration-50 hover:border-pink-600 hover:bg-pink-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-600 disabled:cursor-not-allowed disabled:bg-pink-500 disabled:border-pink-500 disabled:opacity-50 disabled:active:scale-100 active:scale-95"
               >
                 Save
               </button>

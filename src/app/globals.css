@@ -124,3 +124,25 @@
     @apply scroll-m-20 text-center text-4xl font-extrabold tracking-tight text-balance;
   }
 }
+
+@layer utilities {
+  .bg-pink-500 {
+    --tw-bg-opacity: 1;
+    background-color: hsl(270 60% 52% / var(--tw-bg-opacity));
+  }
+
+  .hover\:bg-pink-600:hover {
+    --tw-bg-opacity: 1;
+    background-color: hsl(270 70% 65% / var(--tw-bg-opacity));
+  }
+
+  .border-pink-500 {
+    --tw-border-opacity: 1;
+    border-color: hsl(270 60% 52% / var(--tw-border-opacity));
+  }
+
+  .hover\:border-pink-600:hover {
+    --tw-border-opacity: 1;
+    border-color: hsl(270 70% 65% / var(--tw-border-opacity));
+  }
+}
