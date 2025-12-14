@@ -66,13 +66,34 @@ export function AddUsernameDialog() {
             Username
             <input
               className="w-full rounded-md border border-border px-3 py-2 text-sm outline-hidden ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
-              placeholder="@username"
+              placeholder="username"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               disabled={isPending}
               required
             />
           </label>
+
+          <div className="rounded-md border border-border bg-muted/60 p-3 text-xs text-muted-foreground">
+            <p className="mb-2 font-medium text-foreground">
+              How to find your Railway username
+            </p>
+            <ol className="list-decimal space-y-1 pl-4">
+              <li>
+                Go to{" "}
+                <a
+                  href="https://railway.com/account"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-foreground underline underline-offset-2"
+                >
+                  railway.com/account
+                </a>
+              </li>
+              <li>Set your username.</li>
+              <li>Enable your public profile.</li>
+            </ol>
+          </div>
 
           <DialogFooter>
             <button
