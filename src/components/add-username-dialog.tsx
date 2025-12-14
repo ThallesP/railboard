@@ -1,11 +1,12 @@
 "use client";
 
-import { useConvexMutation } from "@convex-dev/react-query";
+import { useConvexAction } from "@convex-dev/react-query";
 import { useMutation } from "@tanstack/react-query";
+import { ConvexError } from "convex/values";
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
-  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -17,22 +18,33 @@ import { api } from "../../convex/_generated/api";
 
 export function AddUsernameDialog() {
   const [username, setUsername] = useState("");
-  const { mutate } = useMutation({
-    mutationFn: useConvexMutation(api.leaderboard.addUser),
+  const [open, setOpen] = useState(false);
+  const { mutate, isPending } = useMutation({
+    mutationFn: useConvexAction(api.leaderboard.addUser),
+    onSuccess: (data: { username: string; totalDeploys: number }) => {
+      toast.success(`${data.username} added to the leaderboard!`);
+      setUsername("");
+      setOpen(false);
+    },
+    onError: (error) => {
+      if (error instanceof ConvexError) {
+        toast.error(error.data);
+      } else {
+        toast.error("Failed to add user. Please try again.");
+      }
+    },
   });
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-
       mutate({ username });
-      setUsername("");
     },
     [mutate, username],
   );
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <button
           type="button"
@@ -53,23 +65,23 @@ export function AddUsernameDialog() {
           <label className="grid gap-2 text-sm font-medium text-foreground">
             Username
             <input
-              className="w-full rounded-md border border-border px-3 py-2 text-sm outline-hidden ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="w-full rounded-md border border-border px-3 py-2 text-sm outline-hidden ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50"
               placeholder="@username"
               value={username}
               onChange={(event) => setUsername(event.target.value)}
+              disabled={isPending}
               required
             />
           </label>
 
           <DialogFooter>
-            <DialogClose asChild>
-              <button
-                type="submit"
-                className="group/button flex h-[42px] items-center justify-center space-x-3 rounded-lg border border-pink-500 bg-pink-500 px-3 py-2 text-base leading-6 text-white transition-transform duration-50 hover:border-pink-600 hover:bg-pink-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-600 disabled:cursor-not-allowed disabled:bg-pink-500 disabled:border-pink-500 disabled:opacity-50 disabled:active:scale-100 active:scale-95"
-              >
-                Save
-              </button>
-            </DialogClose>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="group/button flex h-[42px] items-center justify-center space-x-3 rounded-lg border border-pink-500 bg-pink-500 px-3 py-2 text-base leading-6 text-white transition-transform duration-50 hover:border-pink-600 hover:bg-pink-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-600 disabled:cursor-not-allowed disabled:bg-pink-500 disabled:border-pink-500 disabled:opacity-50 disabled:active:scale-100 active:scale-95"
+            >
+              {isPending ? "Adding..." : "Save"}
+            </button>
           </DialogFooter>
         </form>
       </DialogContent>

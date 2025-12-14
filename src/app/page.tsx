@@ -37,11 +37,11 @@ export default function Home() {
         <div className="relative mx-auto flex max-w-5xl flex-col gap-8">
           <header className="flex flex-col items-center gap-4 text-center">
             <h1 className="text-balance text-4xl font-semibold tracking-tight sm:text-5xl">
-              Simple Railway deploy leaderboard
+              Railboard
             </h1>
-            <p className="max-w-2xl text-sm text-slate-300 sm:text-base">
-              Track how many times your Railway projects have been deployed. Add
-              your username and keep an eye on the scoreboard.
+            <p className="max-w-2xl text-lg text-slate-300 sm:text-lg">
+              Track how many times you've deployed your projects across all
+              projects and compete for the top spot.
             </p>
             <div className="mt-1">
               <AddUsernameDialog />
