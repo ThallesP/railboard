@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "bunx convex deploy --cmd='next build'",
+    "build": "bunx convex deploy && next build",
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write"
