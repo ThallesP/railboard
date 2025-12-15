@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "../../convex/_generated/api";
+import confetti from "canvas-confetti";
 
 export function AddUsernameDialog() {
   const [username, setUsername] = useState("");
@@ -23,6 +24,29 @@ export function AddUsernameDialog() {
     mutationFn: useConvexAction(api.leaderboard.addUser),
     onSuccess: (data: { username: string; totalDeploys: number }) => {
       toast.success(`${data.username} added to the leaderboard!`);
+      const end = Date.now() + 3 * 1000; // 3 seconds
+      const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
+      const frame = () => {
+        if (Date.now() > end) return;
+        confetti({
+          particleCount: 2,
+          angle: 60,
+          spread: 55,
+          startVelocity: 60,
+          origin: { x: 0, y: 0.5 },
+          colors: colors,
+        });
+        confetti({
+          particleCount: 2,
+          angle: 120,
+          spread: 55,
+          startVelocity: 60,
+          origin: { x: 1, y: 0.5 },
+          colors: colors,
+        });
+        requestAnimationFrame(frame);
+      };
+      frame();
       setUsername("");
       setOpen(false);
     },
@@ -40,7 +64,7 @@ export function AddUsernameDialog() {
       event.preventDefault();
       mutate({ username });
     },
-    [mutate, username],
+    [mutate, username]
   );
 
   return (
