@@ -84,14 +84,20 @@ export const addUser = action({
   },
 });
 
-export const list = query({
+export const get = query({
   args: {},
   async handler(ctx) {
-    return await ctx.db
+    const users = await ctx.db
       .query("users")
       .withIndex("by_total_deploys")
       .order("desc")
       .collect();
+
+    return {
+      users,
+      totalDeploys: users.reduce((sum, user) => sum + user.totalDeploys, 0),
+      totalUsers: users.length,
+    };
   },
 });
 

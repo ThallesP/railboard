@@ -18,15 +18,7 @@ export default function Home() {
     data: leaderboard,
     isLoading,
     isError,
-  } = useQuery(convexQuery(api.leaderboard.list));
-
-  const totalDeploys = leaderboard?.reduce(
-    (sum, entry) => sum + (entry?.totalDeploys ?? 0),
-    0,
-  );
-  const totalUsers = leaderboard?.length ?? 0;
-  const currentPage = 1;
-  const totalPages = Math.max(1, Math.ceil(totalUsers / 10));
+  } = useQuery(convexQuery(api.leaderboard.get));
 
   return (
     <div className="min-h-screen bg-[hsl(250,24%,9%)] text-[hsl(0,0%,100%)]">
@@ -54,7 +46,7 @@ export default function Home() {
                 Total deploys
               </p>
               <p className="mt-3 text-3xl font-semibold sm:text-4xl">
-                {totalDeploys?.toLocaleString() ?? "—"}
+                {leaderboard?.totalDeploys?.toLocaleString() ?? "—"}
               </p>
               <p className="mt-1 text-xs text-slate-400">
                 Sum of all deployments listed below.
@@ -65,7 +57,7 @@ export default function Home() {
                 Tracked users
               </p>
               <p className="mt-3 text-3xl font-semibold sm:text-4xl">
-                {totalUsers.toLocaleString()}
+                {leaderboard?.totalUsers?.toLocaleString()}
               </p>
               <p className="mt-1 text-xs text-slate-400">
                 Unique users currently on the leaderboard.
@@ -86,7 +78,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="hidden rounded-full bg-[hsl(248,21%,13%)] px-3 py-1 text-xs text-slate-200 sm:inline-flex">
-                  Page {currentPage} of {totalPages}
+                  Page 1 of 1
                 </div>
               </div>
 
@@ -124,20 +116,20 @@ export default function Home() {
                           Failed to load leaderboard.
                         </TableCell>
                       </TableRow>
-                    ) : leaderboard && leaderboard.length > 0 ? (
-                      leaderboard.map((entry, index) => (
+                    ) : leaderboard && leaderboard.users.length > 0 ? (
+                      leaderboard.users.map((user, index) => (
                         <TableRow
-                          key={entry._id}
+                          key={user._id}
                           className="hover:bg-slate-800/60"
                         >
                           <TableCell className="font-medium text-slate-100">
                             {index + 1}
                           </TableCell>
                           <TableCell className="font-medium text-slate-100">
-                            {entry.username}
+                            {user.username}
                           </TableCell>
                           <TableCell className="text-right text-slate-100">
-                            {entry.totalDeploys.toLocaleString()}
+                            {user.totalDeploys.toLocaleString()}
                           </TableCell>
                         </TableRow>
                       ))
@@ -163,7 +155,7 @@ export default function Home() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <span className="text-xs text-[hsl(246,7%,45%)] sm:hidden">
-                    Page {currentPage} of {totalPages}
+                    Page 1 of 1
                   </span>
                   <button
                     type="button"
