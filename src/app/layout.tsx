@@ -23,14 +23,6 @@ export const metadata: Metadata = {
     description:
       "Track how many times you've deployed your Railway projects and compete on the public Railboard leaderboard.",
     siteName: "Railboard",
-    images: [
-      {
-        url: "/logo.png",
-        width: 1200,
-        height: 630,
-        alt: "Railboard – Railway deploy leaderboard",
-      },
-    ],
     type: "website",
   },
   twitter: {
@@ -38,7 +30,6 @@ export const metadata: Metadata = {
     title: "Railboard – Railway deploy leaderboard",
     description:
       "Track how many times you've deployed your Railway projects and compete on the public Railboard leaderboard.",
-    images: ["/logo.png"],
   },
 };
 
