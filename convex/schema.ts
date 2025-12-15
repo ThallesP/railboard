@@ -5,6 +5,9 @@ export default defineSchema({
   users: defineTable({
     username: v.string(),
     totalDeploys: v.number(),
+    avatar: v.optional(v.string()),
+    name: v.optional(v.string()),
+    website: v.optional(v.string()),
   })
     .index("by_username", ["username"])
     .index("by_total_deploys", ["totalDeploys"]),

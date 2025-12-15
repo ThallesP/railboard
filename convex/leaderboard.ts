@@ -46,7 +46,16 @@ export const addUser = action({
 
     const response = await ky.post("https://backboard.railway.com/graphql/v2", {
       json: {
-        query: `query GetUserProfile($username: String!){ userProfile(username: $username) {totalDeploys} }`,
+        query: `query GetUserProfile($username: String!) {
+          userProfile(username: $username) {
+            totalDeploys
+            avatar
+            name
+            profile {
+              website
+            }
+          }
+        }`,
         variables: {
           username,
         },
@@ -57,12 +66,22 @@ export const addUser = action({
     });
 
     const { data } = await response.json<{
-      data: { userProfile: { totalDeploys: number } };
+      data: {
+        userProfile: {
+          totalDeploys: number;
+          avatar: string | null;
+          name: string | null;
+          profile: { website: string | null } | null;
+        };
+      };
     }>();
 
     await ctx.runMutation(internal.leaderboard.addDeploymentCount, {
       username,
       totalDeploys: data.userProfile.totalDeploys,
+      avatar: data.userProfile.avatar ?? undefined,
+      name: data.userProfile.name ?? undefined,
+      website: data.userProfile.profile?.website ?? undefined,
     });
 
     // Schedule recurring updates via the workpool
@@ -87,16 +106,16 @@ export const addUser = action({
 export const get = query({
   args: {},
   async handler(ctx) {
-    const users = await ctx.db
+    const entries = await ctx.db
       .query("users")
       .withIndex("by_total_deploys")
       .order("desc")
       .collect();
 
     return {
-      users,
-      totalDeploys: users.reduce((sum, user) => sum + user.totalDeploys, 0),
-      totalUsers: users.length,
+      entries,
+      totalDeploys: entries.reduce((sum, entry) => sum + entry.totalDeploys, 0),
+      totalUsers: entries.length,
     };
   },
 });
@@ -108,7 +127,16 @@ export const addUserInternal = internalAction({
   async handler(ctx, { username }) {
     const response = await ky.post("https://backboard.railway.com/graphql/v2", {
       json: {
-        query: `query GetUserProfile($username: String!){ userProfile(username: $username) {totalDeploys} }`,
+        query: `query GetUserProfile($username: String!) {
+          userProfile(username: $username) {
+            totalDeploys
+            avatar
+            name
+            profile {
+              website
+            }
+          }
+        }`,
         variables: {
           username,
         },
@@ -119,12 +147,22 @@ export const addUserInternal = internalAction({
     });
 
     const { data } = await response.json<{
-      data: { userProfile: { totalDeploys: number } };
+      data: {
+        userProfile: {
+          totalDeploys: number;
+          avatar: string | null;
+          name: string | null;
+          profile: { website: string | null } | null;
+        };
+      };
     }>();
 
     await ctx.runMutation(internal.leaderboard.addDeploymentCount, {
       username,
       totalDeploys: data.userProfile.totalDeploys,
+      avatar: data.userProfile.avatar ?? undefined,
+      name: data.userProfile.name ?? undefined,
+      website: data.userProfile.profile?.website ?? undefined,
     });
 
     await addUserPool.enqueueAction(
@@ -144,19 +182,36 @@ export const addDeploymentCount = internalMutation({
   args: {
     username: v.string(),
     totalDeploys: v.number(),
+    avatar: v.optional(v.string()),
+    name: v.optional(v.string()),
+    website: v.optional(v.string()),
   },
-  async handler(ctx, { username, totalDeploys }) {
+  async handler(ctx, { username, totalDeploys, avatar, name, website }) {
     const user = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))
       .first();
 
-    const userId: Id<"users"> | undefined = user
-      ? user._id
-      : await ctx.db.insert("users", {
-          username,
-          totalDeploys,
-        });
+    let userId: Id<"users">;
+    if (user) {
+      // Update existing user with new data
+      await ctx.db.patch(user._id, {
+        totalDeploys,
+        avatar,
+        name,
+        website,
+      });
+      userId = user._id;
+    } else {
+      // Create new user
+      userId = await ctx.db.insert("users", {
+        username,
+        totalDeploys,
+        avatar,
+        name,
+        website,
+      });
+    }
 
     await ctx.db.insert("deployments", {
       userId,
