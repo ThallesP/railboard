@@ -24,7 +24,7 @@ export function AddUsernameDialog() {
     mutationFn: useConvexAction(api.leaderboard.addUser),
     onSuccess: (data: { username: string; totalDeploys: number }) => {
       toast.success(`${data.username} added to the leaderboard!`);
-      const end = Date.now() + 3 * 1000; // 3 seconds
+      const end = Date.now() + 1000; // 1 second
       const colors = ["#a786ff", "#fd8bbc", "#eca184", "#f8deb1"];
       const frame = () => {
         if (Date.now() > end) return;
