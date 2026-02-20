@@ -15,5 +15,5 @@ export default defineSchema({
     userId: v.id("users"),
     totalDeploys: v.number(),
     createdAt: v.number(),
-  }),
+  }).index("by_user_created_at", ["userId", "createdAt"]),
 });
