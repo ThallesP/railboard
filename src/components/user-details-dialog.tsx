@@ -27,16 +27,14 @@ export function UserDetailsDialog({ username }: UserDetailsDialogProps) {
   const [open, setOpen] = React.useState(false);
   const now = React.useMemo(() => (open ? Date.now() : 0), [open]);
 
-  const { data, isLoading, isError } = useQuery(
-    convexQuery(api.users.getUserDetails, {
+  const { data, isLoading, isError } = useQuery({
+    ...convexQuery(api.users.getUserDetails, {
       username,
       now,
       limit: 60,
     }),
-    {
-      enabled: open,
-    },
-  );
+    enabled: open,
+  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
