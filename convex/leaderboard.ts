@@ -52,6 +52,12 @@ async function getCumulativeDeploysAt(
 
 const addUserPool = new Workpool(components.addUserPool, {
   maxParallelism: 1,
+  retryActionsByDefault: true,
+  defaultRetryBehavior: {
+    maxAttempts: 3,
+    initialBackoffMs: 1000,
+    base: 2,
+  },
 });
 
 const USER_PAGE_SIZE = 512;
