@@ -49,16 +49,6 @@ const comparisonStatsValidator = v.object({
   trend: v.union(v.literal("up"), v.literal("down"), v.literal("neutral")),
 });
 
-const comparisonStatsByPeriodValidator = v.object({
-  sevenDays: comparisonStatsValidator,
-  thirtyDays: comparisonStatsValidator,
-});
-
-const chartDataByPeriodValidator = v.object({
-  last7d: v.array(deploymentChartDataValidator),
-  last30d: v.array(deploymentChartDataValidator),
-});
-
 async function getCumulativeDeploysAt(
   ctx: Parameters<(typeof getUserDetails)["handler"]>[0],
   userId: Id<"users">,
@@ -114,6 +104,7 @@ export const getUserDetails = query({
     username: v.string(),
     now: v.number(),
     limit: v.optional(v.number()),
+    period: v.optional(v.union(v.literal("7d"), v.literal("30d"))),
   },
   returns: v.union(
     v.null(),
@@ -121,12 +112,13 @@ export const getUserDetails = query({
       user: userValidator,
       stats: statsValidator,
       deployments: v.array(deploymentPointValidator),
-      chartData: chartDataByPeriodValidator,
-      comparisonStats: comparisonStatsByPeriodValidator,
+      chartData: v.array(deploymentChartDataValidator),
+      comparisonStats: comparisonStatsValidator,
+      selectedPeriod: v.union(v.literal("7d"), v.literal("30d")),
       samplesShown: v.number(),
     }),
   ),
-  async handler(ctx, { username, now, limit }) {
+  async handler(ctx, { username, now, limit, period }) {
     const user = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))
@@ -148,6 +140,9 @@ export const getUserDetails = query({
       .order("asc")
       .first();
 
+    const selectedPeriod = period ?? "7d";
+    const periodDays = selectedPeriod === "30d" ? 30 : 7;
+
     if (!latest || !earliest) {
       return {
         user,
@@ -161,14 +156,9 @@ export const getUserDetails = query({
           averagePerDayLast30d: 0,
         },
         deployments: [],
-        chartData: {
-          last7d: [],
-          last30d: [],
-        },
-        comparisonStats: {
-          sevenDays: createComparisonStats(0, 0),
-          thirtyDays: createComparisonStats(0, 0),
-        },
+        chartData: [],
+        comparisonStats: createComparisonStats(0, 0),
+        selectedPeriod,
         samplesShown: 0,
       };
     }
@@ -211,28 +201,14 @@ export const getUserDetails = query({
       };
     });
 
-    const [chartData7d, chartData30d] = await Promise.all([
-      getChartDataForPeriod(ctx, user._id, now, 7),
-      getChartDataForPeriod(ctx, user._id, now, 30),
-    ]);
-
-    const [sevenDaysComparison, thirtyDaysComparison] = await Promise.all([
+    const [chartData, comparisonStats] = await Promise.all([
+      getChartDataForPeriod(ctx, user._id, now, periodDays),
       computeComparisonForPeriod(
         (timestamp) => getCumulativeDeploysAt(ctx, user._id, timestamp),
         now,
-        7,
-      ),
-      computeComparisonForPeriod(
-        (timestamp) => getCumulativeDeploysAt(ctx, user._id, timestamp),
-        now,
-        30,
+        periodDays,
       ),
     ]);
-
-    const comparisonStats = {
-      sevenDays: sevenDaysComparison,
-      thirtyDays: thirtyDaysComparison,
-    };
 
     return {
       user,
@@ -246,11 +222,9 @@ export const getUserDetails = query({
         averagePerDayLast30d: Number((deploysLast30d / 30).toFixed(2)),
       },
       deployments,
-      chartData: {
-        last7d: chartData7d,
-        last30d: chartData30d,
-      },
+      chartData,
       comparisonStats,
+      selectedPeriod,
       samplesShown: deployments.length,
     };
   },

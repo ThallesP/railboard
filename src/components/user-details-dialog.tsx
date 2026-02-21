@@ -3,6 +3,7 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import * as React from "react";
+import { DeploymentFrequencyChart } from "@/components/deployment-frequency-chart";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,16 +14,59 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  buildChartDataByPeriod,
+  buildUserDetailsQueryArgs,
+  DEFAULT_USER_DETAILS_PERIOD,
+  getResetPeriodForDialog,
+  getWeekOverWeekTitle,
+  type UserDetailsChartPeriod,
+} from "@/lib/user-details-chart-utils";
+import {
   normalizeUsername,
   shouldFetchUserDetails,
 } from "@/lib/user-details-dialog-utils";
 import { api } from "../../convex/_generated/api";
+import { WeekOverWeekStat } from "./week-over-week-stat";
 
 type UserDetailsDialogProps = {
   username?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   showTrigger?: boolean;
+};
+
+type UserDetailsData = {
+  user: {
+    username: string;
+    name?: string;
+    website?: string;
+  };
+  stats: {
+    firstTrackedAt: number;
+    lastTrackedAt: number;
+    currentTotalDeploys: number;
+    deploysLast24h: number;
+    deploysLast7d: number;
+    deploysLast30d: number;
+    averagePerDayLast30d: number;
+  };
+  deployments: {
+    createdAt: number;
+    totalDeploys: number;
+    delta: number;
+  }[];
+  chartData: {
+    date: string;
+    count: number;
+    delta: number;
+  }[];
+  comparisonStats: {
+    currentPeriod: number;
+    previousPeriod: number;
+    percentageChange: number;
+    trend: "up" | "down" | "neutral";
+  };
+  samplesShown: number;
 };
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
@@ -36,6 +80,9 @@ export function UserDetailsDialog({
   onOpenChange,
   showTrigger = true,
 }: UserDetailsDialogProps) {
+  const [period, setPeriod] = React.useState<UserDetailsChartPeriod>(
+    DEFAULT_USER_DETAILS_PERIOD,
+  );
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
   const resolvedOpen = open ?? uncontrolledOpen;
   const normalizedUsername = normalizeUsername(username);
@@ -51,18 +98,36 @@ export function UserDetailsDialog({
       if (open === undefined) {
         setUncontrolledOpen(nextOpen);
       }
+
+      const resetPeriod = getResetPeriodForDialog(nextOpen);
+      if (resetPeriod) {
+        setPeriod(resetPeriod);
+      }
     },
     [onOpenChange, open],
   );
 
-  const { data, isLoading, isError } = useQuery({
-    ...convexQuery(api.users.getUserDetails, {
-      username: normalizedUsername,
-      now,
-      limit: 60,
-    }),
-    enabled: queryEnabled,
-  });
+  const { data, isLoading, isError, isFetching } =
+    useQuery<UserDetailsData | null>({
+      ...convexQuery(
+        api.users.getUserDetails,
+        buildUserDetailsQueryArgs({
+          username: normalizedUsername,
+          now,
+          period,
+        }),
+      ),
+      enabled: queryEnabled,
+    });
+
+  const chartDataByPeriod = React.useMemo(
+    () => buildChartDataByPeriod(period, data?.chartData),
+    [data?.chartData, period],
+  );
+
+  const comparisonTitle = getWeekOverWeekTitle(period);
+  const chartIsLoading = isLoading || isFetching;
+  const chartIsError = isError;
 
   return (
     <Dialog open={resolvedOpen} onOpenChange={handleOpenChange}>
@@ -96,11 +161,11 @@ export function UserDetailsDialog({
           <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-slate-300">
             Select a user from the leaderboard to view details.
           </div>
-        ) : isLoading ? (
+        ) : isLoading && !data ? (
           <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-slate-300">
             Loading user details...
           </div>
-        ) : isError ? (
+        ) : isError && !data ? (
           <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-rose-200">
             Failed to load user details.
           </div>
@@ -246,6 +311,29 @@ export function UserDetailsDialog({
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            <div className="space-y-3">
+              <WeekOverWeekStat
+                title={comparisonTitle}
+                stats={
+                  data.comparisonStats ?? {
+                    currentPeriod: 0,
+                    previousPeriod: 0,
+                    percentageChange: 0,
+                    trend: "neutral",
+                  }
+                }
+                isLoading={chartIsLoading}
+                isError={chartIsError}
+              />
+              <DeploymentFrequencyChart
+                data={chartDataByPeriod}
+                period={period}
+                onPeriodChange={setPeriod}
+                isLoading={chartIsLoading}
+                isError={chartIsError}
+              />
             </div>
           </div>
         )}
