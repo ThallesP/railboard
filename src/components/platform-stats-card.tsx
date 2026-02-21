@@ -1,6 +1,7 @@
 "use client";
 
 import { TrendingDown, TrendingUp } from "lucide-react";
+import { formatWeekOverWeekPercentage } from "@/lib/platform-stats";
 import { cn } from "@/lib/utils";
 
 type PlatformStatsCardProps = {
@@ -13,23 +14,6 @@ type PlatformStatsCardProps = {
   isError?: boolean;
   className?: string;
 };
-
-function formatChange(change: number) {
-  if (!Number.isFinite(change)) {
-    return "0%";
-  }
-
-  const formatted = Math.abs(change).toFixed(
-    Math.abs(change) % 1 === 0 ? 0 : 2,
-  );
-  if (change > 0) {
-    return `+${formatted}%`;
-  }
-  if (change < 0) {
-    return `-${formatted}%`;
-  }
-  return `${formatted}%`;
-}
 
 export function PlatformStatsCard({
   title,
@@ -79,7 +63,7 @@ export function PlatformStatsCard({
                   "text-slate-300": trend === "neutral",
                 })}
               >
-                {formatChange(change)} vs previous week
+                {formatWeekOverWeekPercentage(change)} vs previous week
               </span>
             </div>
           ) : null}
