@@ -12,10 +12,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  normalizeUsername,
+  shouldFetchUserDetails,
+} from "@/lib/user-details-dialog-utils";
 import { api } from "../../convex/_generated/api";
 
 type UserDetailsDialogProps = {
-  username: string;
+  username?: string;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
 };
 
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
@@ -23,45 +30,73 @@ const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   timeStyle: "short",
 });
 
-export function UserDetailsDialog({ username }: UserDetailsDialogProps) {
-  const [open, setOpen] = React.useState(false);
-  const now = React.useMemo(() => (open ? Date.now() : 0), [open]);
+export function UserDetailsDialog({
+  username,
+  open,
+  onOpenChange,
+  showTrigger = true,
+}: UserDetailsDialogProps) {
+  const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
+  const resolvedOpen = open ?? uncontrolledOpen;
+  const normalizedUsername = normalizeUsername(username);
+  const queryEnabled = shouldFetchUserDetails(resolvedOpen, normalizedUsername);
+  const now = React.useMemo(
+    () => (resolvedOpen ? Date.now() : 0),
+    [resolvedOpen],
+  );
 
-  const { data, isLoading, isError } = useQuery(
-    convexQuery(api.users.getUserDetails, {
-      username,
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      onOpenChange?.(nextOpen);
+      if (open === undefined) {
+        setUncontrolledOpen(nextOpen);
+      }
+    },
+    [onOpenChange, open],
+  );
+
+  const { data, isLoading, isError } = useQuery({
+    ...convexQuery(api.users.getUserDetails, {
+      username: normalizedUsername,
       now,
       limit: 60,
     }),
-    {
-      enabled: open,
-    },
-  );
+    enabled: queryEnabled,
+  });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          className="h-8 px-2 text-xs text-slate-200 hover:bg-slate-800/70 hover:text-white"
-        >
-          View
-        </Button>
-      </DialogTrigger>
+    <Dialog open={resolvedOpen} onOpenChange={handleOpenChange}>
+      {showTrigger ? (
+        <DialogTrigger asChild>
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-8 px-2 text-xs text-slate-200 hover:bg-slate-800/70 hover:text-white"
+          >
+            View
+          </Button>
+        </DialogTrigger>
+      ) : null}
       <DialogContent className="max-w-2xl border-[hsl(246,11%,22%)] bg-[hsl(250,21%,11%)] text-slate-100">
         <DialogHeader>
           <DialogTitle className="text-slate-100">
-            {data?.user.name ?? data?.user.username ?? username}
+            {data?.user.name ??
+              data?.user.username ??
+              normalizedUsername ??
+              "User details"}
           </DialogTitle>
           <DialogDescription className="text-slate-400">
-            {data?.user.username ?? username} · User details and deployment
-            history.
+            {(data?.user.username ?? (normalizedUsername || "Selected user")) +
+              " · User details and deployment history."}
           </DialogDescription>
         </DialogHeader>
 
-        {isLoading ? (
+        {!normalizedUsername ? (
+          <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-slate-300">
+            Select a user from the leaderboard to view details.
+          </div>
+        ) : isLoading ? (
           <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-slate-300">
             Loading user details...
           </div>
