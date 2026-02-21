@@ -11,6 +11,43 @@ import {
   internalQuery,
   query,
 } from "./_generated/server";
+import { deploymentsByUserAndTime } from "./deployment-aggregates";
+import { computePlatformWeekStats } from "./deployment-stats";
+
+const platformStatsValidator = v.object({
+  totalDeploysThisWeek: v.number(),
+  totalDeploysLastWeek: v.number(),
+  weekOverWeekChange: v.number(),
+  trend: v.union(v.literal("up"), v.literal("down"), v.literal("neutral")),
+  totalTrackedUsers: v.number(),
+});
+
+async function getCumulativeDeploysAt(
+  ctx: Parameters<(typeof getPlatformStats)["handler"]>[0],
+  userId: Id<"users">,
+  timestamp: number,
+) {
+  const aggregateValue = await deploymentsByUserAndTime.max(ctx, {
+    namespace: userId,
+    bounds: {
+      upper: { key: timestamp, inclusive: true },
+    },
+  });
+
+  if (aggregateValue) {
+    return aggregateValue.sumValue;
+  }
+
+  const fallback = await ctx.db
+    .query("deployments")
+    .withIndex("by_user_created_at", (q) =>
+      q.eq("userId", userId).lte("createdAt", timestamp),
+    )
+    .order("desc")
+    .first();
+
+  return fallback?.totalDeploys ?? 0;
+}
 
 const addUserPool = new Workpool(components.addUserPool, {
   maxParallelism: 1,
@@ -82,6 +119,23 @@ export const get = query({
       totalDeploys: entries.reduce((sum, entry) => sum + entry.totalDeploys, 0),
       totalUsers: entries.length,
     };
+  },
+});
+
+export const getPlatformStats = query({
+  args: {
+    now: v.optional(v.number()),
+  },
+  returns: platformStatsValidator,
+  async handler(ctx, { now }) {
+    const users = await ctx.db.query("users").collect();
+
+    return computePlatformWeekStats(
+      users.map((user) => user._id as string),
+      (userId, timestamp) =>
+        getCumulativeDeploysAt(ctx, userId as Id<"users">, timestamp),
+      now ?? Date.now(),
+    );
   },
 });
 
@@ -249,10 +303,13 @@ export const addDeploymentCount = internalMutation({
       });
     }
 
-    await ctx.db.insert("deployments", {
+    const deploymentDoc = {
       userId,
       totalDeploys,
       createdAt: Date.now(),
-    });
+    };
+
+    await ctx.db.insert("deployments", deploymentDoc);
+    await deploymentsByUserAndTime.insert(ctx, deploymentDoc);
   },
 });
