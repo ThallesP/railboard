@@ -107,18 +107,17 @@ export function UserDetailsDialog({
     [onOpenChange, open],
   );
 
-  const { data, isLoading, isError, isFetching } =
-    useQuery<UserDetailsData | null>({
-      ...convexQuery(
-        api.users.getUserDetails,
-        buildUserDetailsQueryArgs({
-          username: normalizedUsername,
-          now,
-          period,
-        }),
-      ),
-      enabled: queryEnabled,
-    });
+  const { data, isLoading, isError, isFetching } = useQuery({
+    ...convexQuery(
+      api.users.getUserDetails,
+      buildUserDetailsQueryArgs({
+        username: normalizedUsername,
+        now,
+        period,
+      }),
+    ),
+    enabled: queryEnabled,
+  });
 
   const chartDataByPeriod = React.useMemo(
     () => buildChartDataByPeriod(period, data?.chartData),
