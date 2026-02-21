@@ -2,6 +2,7 @@
 
 import { useConvexAction } from "@convex-dev/react-query";
 import { useMutation } from "@tanstack/react-query";
+import confetti from "canvas-confetti";
 import { ConvexError } from "convex/values";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
@@ -15,7 +16,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { api } from "../../convex/_generated/api";
-import confetti from "canvas-confetti";
 
 export function AddUsernameDialog() {
   const [username, setUsername] = useState("");
@@ -64,7 +64,7 @@ export function AddUsernameDialog() {
       event.preventDefault();
       mutate({ username });
     },
-    [mutate, username]
+    [mutate, username],
   );
 
   return (

@@ -4,6 +4,7 @@ import { ConvexError, v } from "convex/values";
 import ky from "ky";
 import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import type { QueryCtx } from "./_generated/server";
 import {
   action,
   internalAction,
@@ -11,6 +12,43 @@ import {
   internalQuery,
   query,
 } from "./_generated/server";
+import { deploymentsByUserAndTime } from "./deployment_aggregates";
+import { computePlatformWeekStats } from "./deployment_stats";
+
+const platformStatsValidator = v.object({
+  totalDeploysThisWeek: v.number(),
+  totalDeploysLastWeek: v.number(),
+  weekOverWeekChange: v.number(),
+  trend: v.union(v.literal("up"), v.literal("down"), v.literal("neutral")),
+  totalTrackedUsers: v.number(),
+});
+
+async function getCumulativeDeploysAt(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  timestamp: number,
+) {
+  const aggregateValue = await deploymentsByUserAndTime.max(ctx, {
+    namespace: userId,
+    bounds: {
+      upper: { key: timestamp, inclusive: true },
+    },
+  });
+
+  if (aggregateValue) {
+    return aggregateValue.sumValue;
+  }
+
+  const fallback = await ctx.db
+    .query("deployments")
+    .withIndex("by_user_created_at", (q) =>
+      q.eq("userId", userId).lte("createdAt", timestamp),
+    )
+    .order("desc")
+    .first();
+
+  return fallback?.totalDeploys ?? 0;
+}
 
 const addUserPool = new Workpool(components.addUserPool, {
   maxParallelism: 1,
@@ -91,6 +129,23 @@ export const get = query({
   },
 });
 
+export const getPlatformStats = query({
+  args: {
+    now: v.optional(v.number()),
+  },
+  returns: platformStatsValidator,
+  async handler(ctx, { now }) {
+    const users = await ctx.db.query("users").collect();
+
+    return computePlatformWeekStats(
+      users.map((user) => user._id as string),
+      (userId, timestamp) =>
+        getCumulativeDeploysAt(ctx, userId as Id<"users">, timestamp),
+      now ?? Date.now(),
+    );
+  },
+});
+
 export const refreshUser = internalAction({
   args: {
     username: v.string(),
@@ -117,27 +172,34 @@ export const refreshUser = internalAction({
       },
     });
 
-    const { data } = await response.json<{
-      data: {
+    const payload = await response.json<{
+      data?: {
         userProfile: {
           totalDeploys: number;
           avatar: string | null;
           name: string | null;
           profile: { website: string | null } | null;
-        };
+        } | null;
       };
+      errors?: Array<{ message?: string }>;
     }>();
+
+    const userProfile = payload.data?.userProfile;
+    if (!userProfile) {
+      const message = payload.errors?.[0]?.message ?? "User profile not found";
+      throw new ConvexError(message);
+    }
 
     await ctx.runMutation(internal.leaderboard.addDeploymentCount, {
       username,
-      totalDeploys: data.userProfile.totalDeploys,
-      avatar: data.userProfile.avatar ?? undefined,
-      name: data.userProfile.name ?? undefined,
-      website: data.userProfile.profile?.website ?? undefined,
+      totalDeploys: userProfile.totalDeploys,
+      avatar: userProfile.avatar ?? undefined,
+      name: userProfile.name ?? undefined,
+      website: userProfile.profile?.website ?? undefined,
     });
 
     return {
-      totalDeploys: data.userProfile.totalDeploys,
+      totalDeploys: userProfile.totalDeploys,
     };
   },
 });
@@ -255,10 +317,16 @@ export const addDeploymentCount = internalMutation({
       });
     }
 
-    await ctx.db.insert("deployments", {
+    const deploymentDoc = {
       userId,
       totalDeploys,
       createdAt: Date.now(),
-    });
+    };
+
+    const deploymentId = await ctx.db.insert("deployments", deploymentDoc);
+    const insertedDeployment = await ctx.db.get(deploymentId);
+    if (insertedDeployment) {
+      await deploymentsByUserAndTime.insert(ctx, insertedDeployment);
+    }
   },
 });

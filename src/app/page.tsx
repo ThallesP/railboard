@@ -2,12 +2,43 @@
 
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
+import type { FunctionReference } from "convex/server";
 import { AddUsernameDialog } from "@/components/add-username-dialog";
+import { PlatformStatsCard } from "@/components/platform-stats-card";
+import {
+  formatWeekOverWeekPercentage,
+  PLATFORM_STATS_STALE_TIME_MS,
+} from "@/lib/platform-stats";
 import { api } from "../../convex/_generated/api";
 import { Leaderboard } from "./leaderboard-table";
 
+type PlatformStats = {
+  totalDeploysThisWeek: number;
+  totalDeploysLastWeek: number;
+  weekOverWeekChange: number;
+  trend: "up" | "down" | "neutral";
+  totalTrackedUsers: number;
+};
+
 export default function Home() {
-  const { data: leaderboard } = useQuery(convexQuery(api.leaderboard.get));
+  const getPlatformStatsRef = api.leaderboard
+    .getPlatformStats as unknown as FunctionReference<
+    "query",
+    "public",
+    Record<string, never>,
+    PlatformStats
+  >;
+
+  const platformStatsQuery = convexQuery(getPlatformStatsRef, {});
+
+  const {
+    data: platformStats,
+    isLoading: isPlatformStatsLoading,
+    isError: isPlatformStatsError,
+  } = useQuery({
+    ...platformStatsQuery,
+    staleTime: PLATFORM_STATS_STALE_TIME_MS,
+  });
 
   return (
     <div className="min-h-screen bg-[hsl(250,24%,9%)] text-[hsl(0,0%,100%)]">
@@ -29,29 +60,42 @@ export default function Home() {
             </div>
           </header>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-[hsl(246,11%,22%)] bg-[hsl(250,21%,11%)] p-4 shadow-lg backdrop-blur">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                Total deploys
-              </p>
-              <p className="mt-3 text-3xl font-semibold sm:text-4xl">
-                {leaderboard?.totalDeploys?.toLocaleString() ?? "—"}
-              </p>
-              <p className="mt-1 text-xs text-slate-400">
-                Sum of all deployments listed below.
-              </p>
-            </div>
-            <div className="rounded-xl border border-[hsl(246,11%,22%)] bg-[hsl(250,21%,11%)] p-4 shadow-lg backdrop-blur">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                Tracked users
-              </p>
-              <p className="mt-3 text-3xl font-semibold sm:text-4xl">
-                {leaderboard?.totalUsers?.toLocaleString()}
-              </p>
-              <p className="mt-1 text-xs text-slate-400">
-                Unique users currently on the leaderboard.
-              </p>
-            </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <PlatformStatsCard
+              title="Deploys this week"
+              value={
+                platformStats?.totalDeploysThisWeek?.toLocaleString() ?? "0"
+              }
+              description="Total deployments across all tracked users in the current week."
+              isLoading={isPlatformStatsLoading}
+              isError={isPlatformStatsError}
+            />
+            <PlatformStatsCard
+              title="Week-over-week"
+              value={
+                platformStats
+                  ? formatWeekOverWeekPercentage(
+                      platformStats.weekOverWeekChange,
+                    )
+                  : "0%"
+              }
+              description={
+                platformStats
+                  ? `${platformStats.totalDeploysThisWeek.toLocaleString()} this week vs ${platformStats.totalDeploysLastWeek.toLocaleString()} last week.`
+                  : "Compares platform deployments against the previous week."
+              }
+              change={platformStats?.weekOverWeekChange}
+              trend={platformStats?.trend}
+              isLoading={isPlatformStatsLoading}
+              isError={isPlatformStatsError}
+            />
+            <PlatformStatsCard
+              title="Tracked users"
+              value={platformStats?.totalTrackedUsers?.toLocaleString() ?? "0"}
+              description="Unique users currently included in platform statistics."
+              isLoading={isPlatformStatsLoading}
+              isError={isPlatformStatsError}
+            />
           </div>
 
           <Leaderboard />

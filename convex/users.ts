@@ -1,5 +1,15 @@
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
+import type { QueryCtx } from "./_generated/server";
 import { query } from "./_generated/server";
+import { deploymentsByUserAndTime } from "./deployment_aggregates";
+import {
+  buildChartDataFromCumulativeSnapshots,
+  computeComparisonForPeriod,
+  computeDeployDeltaSince,
+  createComparisonStats,
+  createDayRange,
+} from "./deployment_stats";
 
 const userValidator = v.object({
   _id: v.id("users"),
@@ -27,11 +37,75 @@ const statsValidator = v.object({
   averagePerDayLast30d: v.number(),
 });
 
+const deploymentChartDataValidator = v.object({
+  date: v.string(),
+  count: v.number(),
+  delta: v.number(),
+});
+
+const comparisonStatsValidator = v.object({
+  currentPeriod: v.number(),
+  previousPeriod: v.number(),
+  percentageChange: v.number(),
+  trend: v.union(v.literal("up"), v.literal("down"), v.literal("neutral")),
+});
+
+async function getCumulativeDeploysAt(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  timestamp: number,
+) {
+  const aggregateValue = await deploymentsByUserAndTime.max(ctx, {
+    namespace: userId,
+    bounds: {
+      upper: { key: timestamp, inclusive: true },
+    },
+  });
+
+  if (aggregateValue) {
+    return aggregateValue.sumValue;
+  }
+
+  const fallback = await ctx.db
+    .query("deployments")
+    .withIndex("by_user_created_at", (q) =>
+      q.eq("userId", userId).lte("createdAt", timestamp),
+    )
+    .order("desc")
+    .first();
+
+  return fallback?.totalDeploys ?? 0;
+}
+
+async function getChartDataForPeriod(
+  ctx: QueryCtx,
+  userId: Id<"users">,
+  now: number,
+  days: number,
+) {
+  const { start, dayInMs } = createDayRange(now, days);
+  const previousDayTotal = await getCumulativeDeploysAt(ctx, userId, start - 1);
+
+  const cumulativeByDayEnd = await Promise.all(
+    Array.from({ length: days }).map((_, index) => {
+      const dayEnd = start + dayInMs * (index + 1) - 1;
+      return getCumulativeDeploysAt(ctx, userId, dayEnd);
+    }),
+  );
+
+  return buildChartDataFromCumulativeSnapshots(
+    start,
+    cumulativeByDayEnd,
+    previousDayTotal,
+  );
+}
+
 export const getUserDetails = query({
   args: {
     username: v.string(),
     now: v.number(),
     limit: v.optional(v.number()),
+    period: v.optional(v.union(v.literal("7d"), v.literal("30d"))),
   },
   returns: v.union(
     v.null(),
@@ -39,10 +113,13 @@ export const getUserDetails = query({
       user: userValidator,
       stats: statsValidator,
       deployments: v.array(deploymentPointValidator),
+      chartData: v.array(deploymentChartDataValidator),
+      comparisonStats: comparisonStatsValidator,
+      selectedPeriod: v.union(v.literal("7d"), v.literal("30d")),
       samplesShown: v.number(),
     }),
   ),
-  async handler(ctx, { username, now, limit }) {
+  async handler(ctx, { username, now, limit, period }) {
     const user = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))
@@ -64,6 +141,9 @@ export const getUserDetails = query({
       .order("asc")
       .first();
 
+    const selectedPeriod = period ?? "7d";
+    const periodDays = selectedPeriod === "30d" ? 30 : 7;
+
     if (!latest || !earliest) {
       return {
         user,
@@ -77,6 +157,9 @@ export const getUserDetails = query({
           averagePerDayLast30d: 0,
         },
         deployments: [],
+        chartData: [],
+        comparisonStats: createComparisonStats(0, 0),
+        selectedPeriod,
         samplesShown: 0,
       };
     }
@@ -86,28 +169,11 @@ export const getUserDetails = query({
     const month = 30 * day;
 
     const getDeployDeltaSince = async (since: number) => {
-      const latestInWindow = await ctx.db
-        .query("deployments")
-        .withIndex("by_user_created_at", (q) =>
-          q.eq("userId", user._id).gte("createdAt", since),
-        )
-        .order("desc")
-        .first();
-
-      if (!latestInWindow) {
-        return 0;
-      }
-
-      const previous = await ctx.db
-        .query("deployments")
-        .withIndex("by_user_created_at", (q) =>
-          q.eq("userId", user._id).lt("createdAt", since),
-        )
-        .order("desc")
-        .first();
-
-      const base = previous?.totalDeploys ?? 0;
-      return Math.max(0, latestInWindow.totalDeploys - base);
+      return computeDeployDeltaSince(
+        (timestamp) => getCumulativeDeploysAt(ctx, user._id, timestamp),
+        now,
+        since,
+      );
     };
 
     const [deploysLast24h, deploysLast7d, deploysLast30d] = await Promise.all([
@@ -136,6 +202,15 @@ export const getUserDetails = query({
       };
     });
 
+    const [chartData, comparisonStats] = await Promise.all([
+      getChartDataForPeriod(ctx, user._id, now, periodDays),
+      computeComparisonForPeriod(
+        (timestamp) => getCumulativeDeploysAt(ctx, user._id, timestamp),
+        now,
+        periodDays,
+      ),
+    ]);
+
     return {
       user,
       stats: {
@@ -148,6 +223,9 @@ export const getUserDetails = query({
         averagePerDayLast30d: Number((deploysLast30d / 30).toFixed(2)),
       },
       deployments,
+      chartData,
+      comparisonStats,
+      selectedPeriod,
       samplesShown: deployments.length,
     };
   },
