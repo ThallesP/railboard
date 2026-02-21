@@ -1,14 +1,15 @@
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
+import type { QueryCtx } from "./_generated/server";
 import { query } from "./_generated/server";
-import { deploymentsByUserAndTime } from "./deployment-aggregates";
+import { deploymentsByUserAndTime } from "./deployment_aggregates";
 import {
   buildChartDataFromCumulativeSnapshots,
   computeComparisonForPeriod,
   computeDeployDeltaSince,
   createComparisonStats,
   createDayRange,
-} from "./deployment-stats";
+} from "./deployment_stats";
 
 const userValidator = v.object({
   _id: v.id("users"),
@@ -50,7 +51,7 @@ const comparisonStatsValidator = v.object({
 });
 
 async function getCumulativeDeploysAt(
-  ctx: Parameters<(typeof getUserDetails)["handler"]>[0],
+  ctx: QueryCtx,
   userId: Id<"users">,
   timestamp: number,
 ) {
@@ -77,7 +78,7 @@ async function getCumulativeDeploysAt(
 }
 
 async function getChartDataForPeriod(
-  ctx: Parameters<(typeof getUserDetails)["handler"]>[0],
+  ctx: QueryCtx,
   userId: Id<"users">,
   now: number,
   days: number,

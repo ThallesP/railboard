@@ -143,7 +143,7 @@ export function UserDetailsDialog({
           </Button>
         </DialogTrigger>
       ) : null}
-      <DialogContent className="max-w-2xl border-[hsl(246,11%,22%)] bg-[hsl(250,21%,11%)] text-slate-100">
+      <DialogContent className="max-w-2xl max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)] overflow-hidden border-[hsl(246,11%,22%)] bg-[hsl(250,21%,11%)] text-slate-100">
         <DialogHeader>
           <DialogTitle className="text-slate-100">
             {data?.user.name ??
@@ -157,186 +157,188 @@ export function UserDetailsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {!normalizedUsername ? (
-          <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-slate-300">
-            Select a user from the leaderboard to view details.
-          </div>
-        ) : isLoading && !data ? (
-          <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-slate-300">
-            Loading user details...
-          </div>
-        ) : isError && !data ? (
-          <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-rose-200">
-            Failed to load user details.
-          </div>
-        ) : !data ? (
-          <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-slate-300">
-            This user is no longer on the leaderboard.
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
-                <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                  Total deploys
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-white">
-                  {data.stats.currentTotalDeploys.toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
-                <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                  Deploys (24h)
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-white">
-                  {data.stats.deploysLast24h.toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
-                <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                  Deploys (7d)
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-white">
-                  {data.stats.deploysLast7d.toLocaleString()}
-                </p>
-              </div>
+        <div className="min-h-0 overflow-y-auto pr-1">
+          {!normalizedUsername ? (
+            <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-slate-300">
+              Select a user from the leaderboard to view details.
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
-                <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                  Deploys (30d)
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-white">
-                  {data.stats.deploysLast30d.toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
-                <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                  Avg/day (30d)
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-white">
-                  {data.stats.averagePerDayLast30d.toLocaleString()}
-                </p>
-              </div>
-              <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
-                <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                  Last updated
-                </p>
-                <p className="mt-2 text-sm font-semibold text-white">
-                  {dateTimeFormatter.format(data.stats.lastTrackedAt)}
-                </p>
-              </div>
+          ) : isLoading && !data ? (
+            <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-slate-300">
+              Loading user details...
             </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
-                <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                  First tracked
-                </p>
-                <p className="mt-2 text-sm font-semibold text-white">
-                  {dateTimeFormatter.format(data.stats.firstTrackedAt)}
-                </p>
-              </div>
-              <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
-                <p className="text-[11px] uppercase tracking-wide text-slate-400">
-                  Profile
-                </p>
-                <div className="mt-2 text-sm text-slate-200">
-                  {data.user.name ? (
-                    <div>{data.user.name}</div>
-                  ) : (
-                    <div className="text-slate-400">No name provided</div>
-                  )}
-                  {data.user.website ? (
-                    <a
-                      href={data.user.website}
-                      className="mt-1 block text-xs text-slate-300 underline decoration-slate-600 underline-offset-2"
-                      target="_blank"
-                      rel="noreferrer"
-                    >
-                      {data.user.website}
-                    </a>
-                  ) : (
-                    <div className="mt-1 text-xs text-slate-400">
-                      No website on file
-                    </div>
-                  )}
+          ) : isError && !data ? (
+            <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-rose-200">
+              Failed to load user details.
+            </div>
+          ) : !data ? (
+            <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-4 text-sm text-slate-300">
+              This user is no longer on the leaderboard.
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Total deploys
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {data.stats.currentTotalDeploys.toLocaleString()}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Deploys (24h)
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {data.stats.deploysLast24h.toLocaleString()}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Deploys (7d)
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {data.stats.deploysLast7d.toLocaleString()}
+                  </p>
                 </div>
               </div>
-            </div>
 
-            <div>
-              <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
-                <span>Deployments over time</span>
-                <span>Last {data.samplesShown} samples</span>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Deploys (30d)
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {data.stats.deploysLast30d.toLocaleString()}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Avg/day (30d)
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {data.stats.averagePerDayLast30d.toLocaleString()}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Last updated
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    {dateTimeFormatter.format(data.stats.lastTrackedAt)}
+                  </p>
+                </div>
               </div>
-              <div className="mt-2 max-h-60 overflow-y-auto rounded-lg border border-[hsl(246,11%,22%)]">
-                <table className="w-full text-sm">
-                  <thead className="bg-[hsl(250,21%,11%)] text-[11px] uppercase tracking-wide text-slate-400">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Date</th>
-                      <th className="px-3 py-2 text-right">Total</th>
-                      <th className="px-3 py-2 text-right">Delta</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.deployments.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={3}
-                          className="px-3 py-4 text-center text-slate-400"
-                        >
-                          No deployment history available yet.
-                        </td>
-                      </tr>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    First tracked
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    {dateTimeFormatter.format(data.stats.firstTrackedAt)}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-[hsl(246,11%,22%)] bg-[hsl(248,21%,13%)] p-3">
+                  <p className="text-[11px] uppercase tracking-wide text-slate-400">
+                    Profile
+                  </p>
+                  <div className="mt-2 text-sm text-slate-200">
+                    {data.user.name ? (
+                      <div>{data.user.name}</div>
                     ) : (
-                      data.deployments.map((entry) => (
-                        <tr
-                          key={`${entry.createdAt}-${entry.totalDeploys}`}
-                          className="border-t border-[hsl(246,11%,22%)]"
-                        >
-                          <td className="px-3 py-2 text-left text-slate-200">
-                            {dateTimeFormatter.format(entry.createdAt)}
-                          </td>
-                          <td className="px-3 py-2 text-right text-slate-200">
-                            {entry.totalDeploys.toLocaleString()}
-                          </td>
-                          <td className="px-3 py-2 text-right text-emerald-200">
-                            +{entry.delta.toLocaleString()}
+                      <div className="text-slate-400">No name provided</div>
+                    )}
+                    {data.user.website ? (
+                      <a
+                        href={data.user.website}
+                        className="mt-1 block text-xs text-slate-300 underline decoration-slate-600 underline-offset-2"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {data.user.website}
+                      </a>
+                    ) : (
+                      <div className="mt-1 text-xs text-slate-400">
+                        No website on file
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+                  <span>Deployments over time</span>
+                  <span>Last {data.samplesShown} samples</span>
+                </div>
+                <div className="mt-2 max-h-60 overflow-y-auto rounded-lg border border-[hsl(246,11%,22%)]">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[hsl(250,21%,11%)] text-[11px] uppercase tracking-wide text-slate-400">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Date</th>
+                        <th className="px-3 py-2 text-right">Total</th>
+                        <th className="px-3 py-2 text-right">Delta</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.deployments.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={3}
+                            className="px-3 py-4 text-center text-slate-400"
+                          >
+                            No deployment history available yet.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        data.deployments.map((entry) => (
+                          <tr
+                            key={`${entry.createdAt}-${entry.totalDeploys}`}
+                            className="border-t border-[hsl(246,11%,22%)]"
+                          >
+                            <td className="px-3 py-2 text-left text-slate-200">
+                              {dateTimeFormatter.format(entry.createdAt)}
+                            </td>
+                            <td className="px-3 py-2 text-right text-slate-200">
+                              {entry.totalDeploys.toLocaleString()}
+                            </td>
+                            <td className="px-3 py-2 text-right text-emerald-200">
+                              +{entry.delta.toLocaleString()}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <WeekOverWeekStat
+                  title={comparisonTitle}
+                  stats={
+                    data.comparisonStats ?? {
+                      currentPeriod: 0,
+                      previousPeriod: 0,
+                      percentageChange: 0,
+                      trend: "neutral",
+                    }
+                  }
+                  isLoading={chartIsLoading}
+                  isError={chartIsError}
+                />
+                <DeploymentFrequencyChart
+                  data={chartDataByPeriod}
+                  period={period}
+                  onPeriodChange={setPeriod}
+                  isLoading={chartIsLoading}
+                  isError={chartIsError}
+                />
               </div>
             </div>
-
-            <div className="space-y-3">
-              <WeekOverWeekStat
-                title={comparisonTitle}
-                stats={
-                  data.comparisonStats ?? {
-                    currentPeriod: 0,
-                    previousPeriod: 0,
-                    percentageChange: 0,
-                    trend: "neutral",
-                  }
-                }
-                isLoading={chartIsLoading}
-                isError={chartIsError}
-              />
-              <DeploymentFrequencyChart
-                data={chartDataByPeriod}
-                period={period}
-                onPeriodChange={setPeriod}
-                isLoading={chartIsLoading}
-                isError={chartIsError}
-              />
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

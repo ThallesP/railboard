@@ -4,6 +4,7 @@ import { ConvexError, v } from "convex/values";
 import ky from "ky";
 import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
+import type { QueryCtx } from "./_generated/server";
 import {
   action,
   internalAction,
@@ -11,8 +12,8 @@ import {
   internalQuery,
   query,
 } from "./_generated/server";
-import { deploymentsByUserAndTime } from "./deployment-aggregates";
-import { computePlatformWeekStats } from "./deployment-stats";
+import { deploymentsByUserAndTime } from "./deployment_aggregates";
+import { computePlatformWeekStats } from "./deployment_stats";
 
 const platformStatsValidator = v.object({
   totalDeploysThisWeek: v.number(),
@@ -23,7 +24,7 @@ const platformStatsValidator = v.object({
 });
 
 async function getCumulativeDeploysAt(
-  ctx: Parameters<(typeof getPlatformStats)["handler"]>[0],
+  ctx: QueryCtx,
   userId: Id<"users">,
   timestamp: number,
 ) {
@@ -165,27 +166,34 @@ export const refreshUser = internalAction({
       },
     });
 
-    const { data } = await response.json<{
-      data: {
+    const payload = await response.json<{
+      data?: {
         userProfile: {
           totalDeploys: number;
           avatar: string | null;
           name: string | null;
           profile: { website: string | null } | null;
-        };
+        } | null;
       };
+      errors?: Array<{ message?: string }>;
     }>();
+
+    const userProfile = payload.data?.userProfile;
+    if (!userProfile) {
+      const message = payload.errors?.[0]?.message ?? "User profile not found";
+      throw new ConvexError(message);
+    }
 
     await ctx.runMutation(internal.leaderboard.addDeploymentCount, {
       username,
-      totalDeploys: data.userProfile.totalDeploys,
-      avatar: data.userProfile.avatar ?? undefined,
-      name: data.userProfile.name ?? undefined,
-      website: data.userProfile.profile?.website ?? undefined,
+      totalDeploys: userProfile.totalDeploys,
+      avatar: userProfile.avatar ?? undefined,
+      name: userProfile.name ?? undefined,
+      website: userProfile.profile?.website ?? undefined,
     });
 
     return {
-      totalDeploys: data.userProfile.totalDeploys,
+      totalDeploys: userProfile.totalDeploys,
     };
   },
 });
@@ -309,7 +317,10 @@ export const addDeploymentCount = internalMutation({
       createdAt: Date.now(),
     };
 
-    await ctx.db.insert("deployments", deploymentDoc);
-    await deploymentsByUserAndTime.insert(ctx, deploymentDoc);
+    const deploymentId = await ctx.db.insert("deployments", deploymentDoc);
+    const insertedDeployment = await ctx.db.get(deploymentId);
+    if (insertedDeployment) {
+      await deploymentsByUserAndTime.insert(ctx, insertedDeployment);
+    }
   },
 });

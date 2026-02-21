@@ -10,7 +10,7 @@ import {
   resolveTrend,
   startOfUtcDay,
   toIsoDateUtc,
-} from "../convex/deployment-stats";
+} from "../convex/deployment_stats";
 
 describe("deployment stats helpers", () => {
   it("builds daily chart data from cumulative snapshots", () => {
