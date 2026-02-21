@@ -3,7 +3,6 @@
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery } from "@tanstack/react-query";
 import * as React from "react";
-import { api } from "../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -13,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { api } from "../../convex/_generated/api";
 
 type UserDetailsDialogProps = {
   username: string;
