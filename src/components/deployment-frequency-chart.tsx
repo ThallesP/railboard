@@ -143,7 +143,7 @@ export function DeploymentFrequencyChart({
           {chartType === "area" ? (
             <AreaChart
               data={chartData}
-              margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
+              margin={{ top: 8, right: 8, left: 8, bottom: 0 }}
             >
               <CartesianGrid vertical={false} strokeDasharray="3 3" />
               <XAxis
@@ -156,7 +156,8 @@ export function DeploymentFrequencyChart({
                 allowDecimals={false}
                 tickLine={false}
                 axisLine={false}
-                width={28}
+                width={40}
+                tickMargin={6}
               />
               <ChartTooltip
                 content={
@@ -175,7 +176,7 @@ export function DeploymentFrequencyChart({
           ) : (
             <BarChart
               data={chartData}
-              margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
+              margin={{ top: 8, right: 8, left: 8, bottom: 0 }}
             >
               <CartesianGrid vertical={false} strokeDasharray="3 3" />
               <XAxis
@@ -188,7 +189,8 @@ export function DeploymentFrequencyChart({
                 allowDecimals={false}
                 tickLine={false}
                 axisLine={false}
-                width={28}
+                width={40}
+                tickMargin={6}
               />
               <ChartTooltip
                 content={
