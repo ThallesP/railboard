@@ -35,40 +35,6 @@ type UserDetailsDialogProps = {
   showTrigger?: boolean;
 };
 
-type UserDetailsData = {
-  user: {
-    username: string;
-    name?: string;
-    website?: string;
-  };
-  stats: {
-    firstTrackedAt: number;
-    lastTrackedAt: number;
-    currentTotalDeploys: number;
-    deploysLast24h: number;
-    deploysLast7d: number;
-    deploysLast30d: number;
-    averagePerDayLast30d: number;
-  };
-  deployments: {
-    createdAt: number;
-    totalDeploys: number;
-    delta: number;
-  }[];
-  chartData: {
-    date: string;
-    count: number;
-    delta: number;
-  }[];
-  comparisonStats: {
-    currentPeriod: number;
-    previousPeriod: number;
-    percentageChange: number;
-    trend: "up" | "down" | "neutral";
-  };
-  samplesShown: number;
-};
-
 const dateTimeFormatter = new Intl.DateTimeFormat("en-US", {
   dateStyle: "medium",
   timeStyle: "short",
