@@ -13,6 +13,7 @@ import {
   query,
 } from "./_generated/server";
 import { deploymentsByUserAndTime } from "./deployment_aggregates";
+import { shouldRecordDeploymentSnapshot } from "./deployment_snapshots";
 import { computePlatformWeekStats } from "./deployment_stats";
 
 const platformStatsValidator = v.object({
@@ -295,6 +296,10 @@ export const addDeploymentCount = internalMutation({
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", username))
       .first();
+    const shouldRecordSnapshot = shouldRecordDeploymentSnapshot(
+      user?.totalDeploys,
+      totalDeploys,
+    );
 
     let userId: Id<"users">;
     if (user) {
@@ -315,6 +320,10 @@ export const addDeploymentCount = internalMutation({
         name,
         website,
       });
+    }
+
+    if (!shouldRecordSnapshot) {
+      return;
     }
 
     const deploymentDoc = {
